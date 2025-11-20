@@ -80,7 +80,7 @@ impl Checker for Simulation {
         let items: BTreeSet<&str> = self.get_models()
             .iter().map(|m| m.id()).collect();
 
-        match model_count != items.len() {
+        match model_count == items.len() {
             true => Ok(()),
             false => { Err(SimulationError::InvalidModelConfiguration) }
         }
