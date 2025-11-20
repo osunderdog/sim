@@ -1,3 +1,5 @@
+
+use std::collections::BTreeSet;
 use crate::simulator::Simulation;
 use crate::utils::errors::{SimulationError, SimulationResult};
 
@@ -9,6 +11,9 @@ use crate::utils::errors::{SimulationError, SimulationResult};
 pub trait Checker {
     fn connectors_source_to_model(&self) -> SimulationResult<()>;
     fn connectors_target_to_model(&self) -> SimulationResult<()>;
+
+    /// Collect up a list of unique model ids.
+    fn unique_model_ids(&self) -> SimulationResult<()>;
 
     fn valid_messages(&self) -> SimulationResult<()>;
 
@@ -67,5 +72,17 @@ impl Checker for Simulation {
                     None => Err(SimulationError::InvalidMessage),
                 },
             )
+    }
+
+    /// Throw an error if a model id is used more than once.
+    fn unique_model_ids(&self) -> SimulationResult<()> {
+        let model_count: usize = self.get_models().len();
+        let items: BTreeSet<&str> = self.get_models()
+            .iter().map(|m| m.id()).collect();
+
+        match model_count != items.len() {
+            true => Ok(()),
+            false => { Err(SimulationError::InvalidModelConfiguration) }
+        }
     }
 }
