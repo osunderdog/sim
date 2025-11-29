@@ -117,7 +117,7 @@ impl Processor {
         }
     }
 
-    fn add_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn add_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.state.queue.push(incoming_message.content.clone());
         self.record(
             services.global_time(),
@@ -129,7 +129,7 @@ impl Processor {
     fn activate(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         self.state.queue.push(incoming_message.content.clone());
         self.state.phase = Phase::Active;
@@ -150,7 +150,7 @@ impl Processor {
         Ok(())
     }
 
-    fn ignore_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn ignore_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.record(
             services.global_time(),
             String::from("Drop"),
@@ -160,7 +160,7 @@ impl Processor {
 
     fn process_next(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         self.state.phase = Phase::Active;
         self.state.until_next_event = SDuration::new(match &self.rng {
@@ -175,7 +175,7 @@ impl Processor {
         Ok(Vec::new())
     }
 
-    fn release_job(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn release_job(&mut self, services: &Services) -> Vec<ModelMessage> {
         let job = self.state.queue.remove(0);
         self.state.phase = Phase::Passive;
         self.state.until_next_event = SDuration::NOW;
@@ -212,7 +212,7 @@ impl DevsModel for Processor {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         match (
             self.arrival_port(&incoming_message.port_name),
@@ -229,7 +229,7 @@ impl DevsModel for Processor {
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match (&self.state.phase, self.state.queue.is_empty()) {
             (Phase::Passive, true) => Ok(self.passivate()),

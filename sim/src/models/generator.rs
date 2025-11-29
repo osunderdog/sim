@@ -96,7 +96,7 @@ impl Generator {
 
     fn release_job(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         let interdeparture = match &self.rng {
             Some(rng) => self
@@ -122,7 +122,7 @@ impl Generator {
 
     fn initialize_generation(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         let interdeparture = match &self.rng {
             Some(rng) => self
@@ -158,14 +158,14 @@ impl DevsModel for Generator {
     fn events_ext(
         &mut self,
         _incoming_message: &ModelMessage,
-        _services: &mut Services,
+        _services: &Services,
     ) -> Result<(), SimulationError> {
         Ok(())
     }
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match &self.state.phase {
             Phase::Generating => self.release_job(services),

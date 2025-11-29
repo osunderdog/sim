@@ -98,7 +98,7 @@ impl ParallelGateway {
             .find(|(_, count)| **count == self.ports_in.flow_paths.len())
     }
 
-    fn increment_collection(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn increment_collection(&mut self, incoming_message: &ModelMessage, services: &Services) {
         *self
             .state
             .collections
@@ -116,7 +116,7 @@ impl ParallelGateway {
         self.state.until_next_event = SDuration::NOW;
     }
 
-    fn send_job(&mut self, services: &mut Services) -> Result<Vec<ModelMessage>, SimulationError> {
+    fn send_job(&mut self, services: &Services) -> Result<Vec<ModelMessage>, SimulationError> {
         self.state.until_next_event = SDuration::NOW;
         let completed_collection = self
             .full_collection()
@@ -164,7 +164,7 @@ impl DevsModel for ParallelGateway {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         match self.arrival_port(&incoming_message.port_name) {
             ArrivalPort::FlowPath => Ok(self.increment_collection(incoming_message, services)),
@@ -174,7 +174,7 @@ impl DevsModel for ParallelGateway {
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match self.full_collection() {
             Some(_) => self.send_job(services),

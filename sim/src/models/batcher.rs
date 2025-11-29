@@ -92,7 +92,7 @@ impl Batcher {
         }
     }
 
-    fn add_to_batch(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn add_to_batch(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.state.phase = Phase::Batching;
         self.state.jobs.push(incoming_message.content.clone());
         self.record(
@@ -102,7 +102,7 @@ impl Batcher {
         );
     }
 
-    fn start_batch(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn start_batch(&mut self, incoming_message: &ModelMessage, services: & Services) {
         self.state.phase = Phase::Batching;
         self.state.until_next_event = self.max_batch_time;
         self.state.jobs.push(incoming_message.content.clone());
@@ -113,7 +113,7 @@ impl Batcher {
         );
     }
 
-    fn fill_batch(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn fill_batch(&mut self, incoming_message: &ModelMessage, services: & Services) {
         self.state.phase = Phase::Release;
         self.state.until_next_event = SDuration::NOW;
         self.state.jobs.push(incoming_message.content.clone());
@@ -124,7 +124,7 @@ impl Batcher {
         );
     }
 
-    fn release_full_queue(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn release_full_queue(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Passive;
         self.state.until_next_event = SDuration::INFINITY;
         (0..self.state.jobs.len())
@@ -142,7 +142,7 @@ impl Batcher {
             .collect()
     }
 
-    fn release_partial_queue(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn release_partial_queue(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Batching;
         self.state.until_next_event = self.max_batch_time;
         (0..self.max_batch_size)
@@ -160,7 +160,7 @@ impl Batcher {
             .collect()
     }
 
-    fn release_multiple(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn release_multiple(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Release;
         self.state.until_next_event = SDuration::NOW;
         (0..self.max_batch_size)
@@ -195,7 +195,7 @@ impl DevsModel for Batcher {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         match (
             &self.state.phase,
@@ -210,7 +210,7 @@ impl DevsModel for Batcher {
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match (
             self.state.jobs.len() <= self.max_batch_size,

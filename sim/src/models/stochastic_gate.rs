@@ -102,7 +102,7 @@ impl StochasticGate {
     fn receive_job(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         self.state.until_next_event = SDuration::NOW;
         self.state.jobs.push(Job {
@@ -127,7 +127,7 @@ impl StochasticGate {
         Vec::new()
     }
 
-    fn pass_job(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn pass_job(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.until_next_event = SDuration::NOW;
         let job = self.state.jobs.remove(0);
         self.record(
@@ -141,7 +141,7 @@ impl StochasticGate {
         }]
     }
 
-    fn block_job(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn block_job(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.until_next_event = SDuration::NOW;
         let job = self.state.jobs.remove(0);
         self.record(services.global_time(), String::from("Block"), job.content);
@@ -164,7 +164,7 @@ impl DevsModel for StochasticGate {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         match self.arrival_port(&incoming_message.port_name) {
             ArrivalPort::Job => self.receive_job(incoming_message, services),
@@ -174,7 +174,7 @@ impl DevsModel for StochasticGate {
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match self.state.jobs.first() {
             None => Ok(self.passivate()),

@@ -108,7 +108,7 @@ impl Gate {
         }
     }
 
-    fn activate(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn activate(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.state.phase = Phase::Open;
         self.state.until_next_event = SDuration::INFINITY;
         self.record(
@@ -118,7 +118,7 @@ impl Gate {
         );
     }
 
-    fn deactivate(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn deactivate(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.state.phase = Phase::Closed;
         self.state.until_next_event = SDuration::INFINITY;
         self.record(
@@ -128,7 +128,7 @@ impl Gate {
         );
     }
 
-    fn pass_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn pass_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.state.phase = Phase::Pass;
         self.state.until_next_event = SDuration::NOW;
         self.state.jobs.push(incoming_message.content.clone());
@@ -139,7 +139,7 @@ impl Gate {
         );
     }
 
-    fn drop_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn drop_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.record(
             services.global_time(),
             String::from("Arrival"),
@@ -147,7 +147,7 @@ impl Gate {
         );
     }
 
-    fn send_jobs(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn send_jobs(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Open;
         self.state.until_next_event = SDuration::INFINITY;
         (0..self.state.jobs.len())
@@ -181,7 +181,7 @@ impl DevsModel for Gate {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         match (
             self.arrival_port(&incoming_message.port_name),
@@ -197,7 +197,7 @@ impl DevsModel for Gate {
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         Ok(self.send_jobs(services))
     }

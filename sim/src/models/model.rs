@@ -56,14 +56,14 @@ impl DevsModel for Model {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         self.inner.events_ext(incoming_message, services)
     }
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         self.inner.events_int(services)
     }

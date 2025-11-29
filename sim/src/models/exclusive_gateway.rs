@@ -93,7 +93,7 @@ impl ExclusiveGateway {
         }
     }
 
-    fn pass_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn pass_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.state.phase = Phase::Pass;
         self.state.until_next_event = SDuration::NOW;
         self.state.jobs.push(incoming_message.content.clone());
@@ -108,7 +108,7 @@ impl ExclusiveGateway {
         );
     }
 
-    fn send_jobs(&mut self, services: &mut Services) -> Result<Vec<ModelMessage>, SimulationError> {
+    fn send_jobs(&mut self, services: &Services) -> Result<Vec<ModelMessage>, SimulationError> {
         self.state.phase = Phase::Passive;
         self.state.until_next_event = SDuration::INFINITY;
         let departure_port_index = match &self.rng {
@@ -156,14 +156,14 @@ impl DevsModel for ExclusiveGateway {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         Ok(self.pass_job(incoming_message, services))
     }
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match &self.state.phase {
             Phase::Passive => Ok(self.passivate()),

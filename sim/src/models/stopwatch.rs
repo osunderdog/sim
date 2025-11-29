@@ -191,7 +191,7 @@ impl Stopwatch {
             .0
     }
 
-    fn start_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn start_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.record(
             services.global_time(),
             String::from("Start"),
@@ -200,7 +200,7 @@ impl Stopwatch {
         self.matching_or_new_job(incoming_message).start = Some(services.global_time());
     }
 
-    fn stop_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn stop_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.record(
             services.global_time(),
             String::from("Stop"),
@@ -214,7 +214,7 @@ impl Stopwatch {
         self.state.until_next_event = SDuration::NOW;
     }
 
-    fn release_minimum(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn release_minimum(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Passive;
         self.state.until_next_event = SDuration::INFINITY;
         self.record(
@@ -232,7 +232,7 @@ impl Stopwatch {
             .collect()
     }
 
-    fn release_maximum(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn release_maximum(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Passive;
         self.state.until_next_event = SDuration::INFINITY;
         self.record(
@@ -272,7 +272,7 @@ impl DevsModel for Stopwatch {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         match self.arrival_port(&incoming_message.port_name) {
             ArrivalPort::Start => Ok(self.start_job(incoming_message, services)),
@@ -284,7 +284,7 @@ impl DevsModel for Stopwatch {
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match (&self.state.phase, &self.metric) {
             (Phase::JobFetch, Metric::Minimum) => Ok(self.release_minimum(services)),

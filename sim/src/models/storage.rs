@@ -104,7 +104,7 @@ impl Storage {
         self.state.until_next_event = SDuration::NOW;
     }
 
-    fn hold_job(&mut self, incoming_message: &ModelMessage, services: &mut Services) {
+    fn hold_job(&mut self, incoming_message: &ModelMessage, services: &Services) {
         self.state.job = Some(incoming_message.content.clone());
         self.record(
             services.global_time(),
@@ -113,7 +113,7 @@ impl Storage {
         );
     }
 
-    fn release_job(&mut self, services: &mut Services) -> Vec<ModelMessage> {
+    fn release_job(&mut self, services: &Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Passive;
         self.state.until_next_event = SDuration::INFINITY;
         self.record(
@@ -152,7 +152,7 @@ impl DevsModel for Storage {
     fn events_ext(
         &mut self,
         incoming_message: &ModelMessage,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<(), SimulationError> {
         match self.arrival_port(&incoming_message.port_name) {
             ArrivalPort::Put => Ok(self.hold_job(incoming_message, services)),
@@ -163,7 +163,7 @@ impl DevsModel for Storage {
 
     fn events_int(
         &mut self,
-        services: &mut Services,
+        services: &Services,
     ) -> Result<Vec<ModelMessage>, SimulationError> {
         match &self.state.phase {
             Phase::Passive => Ok(self.passivate()),
