@@ -1,5 +1,6 @@
 use super::{ModelMessage, ModelRecord};
 use crate::simulator::Services;
+use crate::simulator::time::SDuration;
 use crate::utils::errors::SimulationError;
 
 pub trait ModelClone {
@@ -42,8 +43,8 @@ pub trait DevsModel: ModelClone + SerializableModel {
     ) -> Result<(), SimulationError>;
     fn events_int(&mut self, services: &mut Services)
         -> Result<Vec<ModelMessage>, SimulationError>;
-    fn time_advance(&mut self, time_delta: f64);
-    fn until_next_event(&self) -> f64;
+    fn time_advance(&mut self, time_delta: SDuration);
+    fn until_next_event(&self) -> SDuration;
     #[cfg(feature = "simx")]
     fn event_rules_scheduling(&self) -> &str;
     #[cfg(feature = "simx")]

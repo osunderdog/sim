@@ -1,5 +1,5 @@
 use std::iter::once;
-
+use std::ops::Div;
 use serde::{Deserialize, Serialize};
 
 use super::model_trait::{DevsModel, Reportable, ReportableModel, SerializableModel};
@@ -11,6 +11,7 @@ use sim_derive::SerializableModel;
 
 #[cfg(feature = "simx")]
 use simx::event_rules;
+use crate::simulator::time::{SDuration, STime};
 
 /// The stopwatch calculates durations by matching messages on the start and
 /// stop ports.  For example, a "job 1" message arrives at the start port at
@@ -62,7 +63,7 @@ pub enum Metric {
 #[serde(rename_all = "camelCase")]
 struct State {
     phase: Phase,
-    until_next_event: f64,
+    until_next_event: SDuration,
     jobs: Vec<Job>,
     records: Vec<ModelRecord>,
 }
@@ -71,7 +72,7 @@ impl Default for State {
     fn default() -> Self {
         State {
             phase: Phase::Passive,
-            until_next_event: f64::INFINITY,
+            until_next_event: SDuration::INFINITY,
             jobs: Vec::new(),
             records: Vec::new(),
         }
@@ -88,11 +89,11 @@ enum Phase {
 #[serde(rename_all = "camelCase")]
 pub struct Job {
     name: String,
-    start: Option<f64>,
-    stop: Option<f64>,
+    start: Option<STime>,
+    stop: Option<STime>,
 }
 
-fn some_duration(job: &Job) -> Option<(String, f64)> {
+fn some_duration(job: &Job) -> Option<(String, SDuration)> {
     match (job.start, job.stop) {
         (Some(start), Some(stop)) => Some((job.name.to_string(), stop - start)),
         _ => None,
@@ -160,7 +161,7 @@ impl Stopwatch {
             .iter()
             .filter_map(some_duration)
             .fold(
-                (None, f64::INFINITY),
+                (None, SDuration::INFINITY),
                 |minimum, (job_name, job_duration)| {
                     if job_duration < minimum.1 {
                         (Some(job_name), job_duration)
@@ -178,7 +179,7 @@ impl Stopwatch {
             .iter()
             .filter_map(some_duration)
             .fold(
-                (None, f64::NEG_INFINITY),
+                (None, SDuration::NOW),
                 |maximum, (job_name, job_duration)| {
                     if job_duration > maximum.1 {
                         (Some(job_name), job_duration)
@@ -210,12 +211,12 @@ impl Stopwatch {
 
     fn get_job(&mut self) {
         self.state.phase = Phase::JobFetch;
-        self.state.until_next_event = 0.0;
+        self.state.until_next_event = SDuration::NOW;
     }
 
     fn release_minimum(&mut self, services: &mut Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Passive;
-        self.state.until_next_event = f64::INFINITY;
+        self.state.until_next_event = SDuration::INFINITY;
         self.record(
             services.global_time(),
             String::from("Minimum Fetch"),
@@ -233,7 +234,7 @@ impl Stopwatch {
 
     fn release_maximum(&mut self, services: &mut Services) -> Vec<ModelMessage> {
         self.state.phase = Phase::Passive;
-        self.state.until_next_event = f64::INFINITY;
+        self.state.until_next_event = SDuration::INFINITY;
         self.record(
             services.global_time(),
             String::from("Maximum Fetch"),
@@ -251,11 +252,11 @@ impl Stopwatch {
 
     fn passivate(&mut self) -> Vec<ModelMessage> {
         self.state.phase = Phase::Passive;
-        self.state.until_next_event = f64::INFINITY;
+        self.state.until_next_event = SDuration::INFINITY;
         Vec::new()
     }
 
-    fn record(&mut self, time: f64, action: String, subject: String) {
+    fn record(&mut self, time: STime, action: String, subject: String) {
         if self.store_records {
             self.state.records.push(ModelRecord {
                 time,
@@ -292,21 +293,22 @@ impl DevsModel for Stopwatch {
         }
     }
 
-    fn time_advance(&mut self, time_delta: f64) {
+    fn time_advance(&mut self, time_delta: SDuration) {
         self.state.until_next_event -= time_delta;
     }
 
-    fn until_next_event(&self) -> f64 {
+    fn until_next_event(&self) -> SDuration {
         self.state.until_next_event
     }
 }
+
 
 impl Reportable for Stopwatch {
     fn status(&self) -> String {
         if self.state.jobs.is_empty() {
             String::from("Measuring durations")
         } else {
-            let durations: Vec<f64> = self
+            let durations: Vec<SDuration> = self
                 .state
                 .jobs
                 .iter()
@@ -314,7 +316,7 @@ impl Reportable for Stopwatch {
                 .collect();
             format![
                 "Average {:.3}",
-                durations.iter().sum::<f64>() / durations.len() as f64
+                (durations.iter().sum::<SDuration>()) / durations.len() as f64
             ]
         }
     }

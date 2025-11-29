@@ -10,6 +10,7 @@ use sim_derive::SerializableModel;
 
 #[cfg(feature = "simx")]
 use simx::event_rules;
+use crate::simulator::time::SDuration;
 
 #[derive(Clone, Deserialize, Serialize, SerializableModel)]
 #[serde(rename_all = "camelCase")]
@@ -230,7 +231,7 @@ impl Coupled {
         // Run events_int for each model, and compile the internal and external messages
         // Store the internal messages in the Coupled model struct, and output the external messages
         let int_transitioning_component_indexes: Vec<usize> = (0..self.components.len())
-            .filter(|component_index| self.components[*component_index].until_next_event() == 0.0)
+            .filter(|component_index| self.components[*component_index].until_next_event() == SDuration::NOW)
             .collect();
         Ok(int_transitioning_component_indexes
             .iter()
@@ -295,17 +296,17 @@ impl DevsModel for Coupled {
         self.distribute_events_int(services)
     }
 
-    fn time_advance(&mut self, time_delta: f64) {
+    fn time_advance(&mut self, time_delta: SDuration) {
         self.components.iter_mut().for_each(|component| {
             component.time_advance(time_delta);
         });
     }
 
-    fn until_next_event(&self) -> f64 {
+    fn until_next_event(&self) -> SDuration {
         self.components
             .iter()
-            .fold(f64::INFINITY, |min, component| {
-                f64::min(min, component.until_next_event())
+            .fold(SDuration::INFINITY, |min, component| {
+                SDuration::min(min, component.until_next_event())
             })
     }
 }

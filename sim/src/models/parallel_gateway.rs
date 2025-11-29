@@ -11,6 +11,7 @@ use sim_derive::SerializableModel;
 
 #[cfg(feature = "simx")]
 use simx::event_rules;
+use crate::simulator::time::{SDuration, STime};
 
 /// The parallel gateway splits a job across multiple processing paths. The
 /// job is duplicated across every one of the processing paths. In addition
@@ -48,7 +49,7 @@ struct PortsOut {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct State {
-    until_next_event: f64,
+    until_next_event: SDuration,
     collections: HashMap<String, usize>,
     records: Vec<ModelRecord>,
 }
@@ -56,7 +57,7 @@ struct State {
 impl Default for State {
     fn default() -> Self {
         Self {
-            until_next_event: f64::INFINITY,
+            until_next_event: SDuration::INFINITY,
             collections: HashMap::new(),
             records: Vec::new(),
         }
@@ -112,11 +113,11 @@ impl ParallelGateway {
                 incoming_message.port_name.clone()
             ],
         );
-        self.state.until_next_event = 0.0;
+        self.state.until_next_event = SDuration::NOW;
     }
 
     fn send_job(&mut self, services: &mut Services) -> Result<Vec<ModelMessage>, SimulationError> {
-        self.state.until_next_event = 0.0;
+        self.state.until_next_event = SDuration::NOW;
         let completed_collection = self
             .full_collection()
             .ok_or(SimulationError::InvalidModelState)?
@@ -143,11 +144,11 @@ impl ParallelGateway {
     }
 
     fn passivate(&mut self) -> Vec<ModelMessage> {
-        self.state.until_next_event = f64::INFINITY;
+        self.state.until_next_event = SDuration::INFINITY;
         Vec::new()
     }
 
-    fn record(&mut self, time: f64, action: String, subject: String) {
+    fn record(&mut self, time: STime, action: String, subject: String) {
         if self.store_records {
             self.state.records.push(ModelRecord {
                 time,
@@ -181,11 +182,11 @@ impl DevsModel for ParallelGateway {
         }
     }
 
-    fn time_advance(&mut self, time_delta: f64) {
+    fn time_advance(&mut self, time_delta: SDuration) {
         self.state.until_next_event -= time_delta;
     }
 
-    fn until_next_event(&self) -> f64 {
+    fn until_next_event(&self) -> SDuration {
         self.state.until_next_event
     }
 }

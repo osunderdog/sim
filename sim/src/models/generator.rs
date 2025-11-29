@@ -12,6 +12,7 @@ use sim_derive::SerializableModel;
 
 #[cfg(feature = "simx")]
 use simx::event_rules;
+use crate::simulator::time::{SDuration, STime};
 
 /// The generator produces jobs based on a configured interarrival
 /// distribution. A normalized thinning function is used to enable
@@ -51,8 +52,7 @@ struct PortsOut {
 #[serde(rename_all = "camelCase")]
 struct State {
     phase: Phase,
-    until_next_event: f64,
-    until_job: f64,
+    until_next_event: SDuration,
     last_job: usize,
     records: Vec<ModelRecord>,
 }
@@ -61,8 +61,7 @@ impl Default for State {
     fn default() -> Self {
         Self {
             phase: Phase::Initializing,
-            until_next_event: 0.0,
-            until_job: 0.0,
+            until_next_event: SDuration::NOW,
             last_job: 0,
             records: Vec::new(),
         }
@@ -108,8 +107,7 @@ impl Generator {
                 .random_variate(services.global_rng())?,
         };
         self.state.phase = Phase::Generating;
-        self.state.until_next_event = interdeparture;
-        self.state.until_job = interdeparture;
+        self.state.until_next_event = SDuration::new(interdeparture);
         self.state.last_job += 1;
         self.record(
             services.global_time(),
@@ -135,8 +133,7 @@ impl Generator {
                 .random_variate(services.global_rng())?,
         };
         self.state.phase = Phase::Generating;
-        self.state.until_next_event = interdeparture;
-        self.state.until_job = interdeparture;
+        self.state.until_next_event = SDuration::new(interdeparture);
         self.record(
             services.global_time(),
             String::from("Initialization"),
@@ -145,7 +142,7 @@ impl Generator {
         Ok(Vec::new())
     }
 
-    fn record(&mut self, time: f64, action: String, subject: String) {
+    fn record(&mut self, time: STime, action: String, subject: String) {
         if self.store_records {
             self.state.records.push(ModelRecord {
                 time,
@@ -176,11 +173,11 @@ impl DevsModel for Generator {
         }
     }
 
-    fn time_advance(&mut self, time_delta: f64) {
+    fn time_advance(&mut self, time_delta: SDuration) {
         self.state.until_next_event -= time_delta;
     }
 
-    fn until_next_event(&self) -> f64 {
+    fn until_next_event(&self) -> SDuration {
         self.state.until_next_event
     }
 }
