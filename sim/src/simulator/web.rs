@@ -1,3 +1,4 @@
+use std::io::Cursor;
 use js_sys::Array;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
@@ -107,13 +108,13 @@ impl Simulation {
     /// A JS/WASM interface for `Simulation.records`, which converts the
     /// records to a JSON string.
     pub fn get_records_json(&self, model_id: &str) -> String {
-        serde_json::to_string(self.simulation.get_records(model_id).unwrap()).unwrap()
+        serde_json::to_string(&self.simulation.get_records(model_id).unwrap()).unwrap()
     }
 
     /// A JS/WASM interface for `Simulation.records`, which converts the
     /// records to a YAML string.
     pub fn get_records_yaml(&self, model_id: &str) -> String {
-        serde_yaml::to_string(self.simulation.get_records(model_id).unwrap()).unwrap()
+        serde_yaml::to_string(&self.simulation.get_records(model_id).unwrap()).unwrap()
     }
 
     /// An interface to `Simulation.reset`.

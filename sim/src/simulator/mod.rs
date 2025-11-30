@@ -16,7 +16,7 @@
 
 use std::cell::RefCell;
 use std::error::Error;
-use std::fmt;
+use std::{fmt, io};
 use std::fmt::Formatter;
 use std::rc::Rc;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -180,18 +180,16 @@ impl Simulation {
     /// This method provides a mechanism for getting the records of any model
     /// in a simulation.  The method takes the model ID as an argument, and
     /// returns the records for that model.
-    pub fn get_records<'a>(&'a self, model_id: &'a str) -> Result<&'a Vec<ModelRecord>, SimulationError> {
-        let model = self
+    pub fn get_records(&self, model_id: &str) -> Result<Vec<ModelRecord>,SimulationError>
+    {
+        Ok(self
             .models
             .borrow()
             .iter()
             .find(|model| model.id() == model_id)
-            .ok_or(SimulationError::ModelNotFound)?;
-        let result: Vec<ModelRecord> = model.records().iter().map(|r| r.clone()).clone()?;
-        Ok(result)
-        //TODO how to return this???
+            .ok_or(SimulationError::ModelNotFound)?
+            .records().to_vec())
     }
-
 
     /// To enable simulation replications, the reset method resets the state
     /// of the simulation, except for the random number generator.

@@ -36,6 +36,14 @@ impl Sub<STime> for STime {
     }
 }
 
+impl Sub<&STime> for &STime {
+    type Output = SDuration;
+
+    fn sub(self, rhs: &STime) -> Self::Output {
+        *self - *rhs
+    }
+}
+
 
 impl Sub<SDuration> for STime {
     type Output = Self;
