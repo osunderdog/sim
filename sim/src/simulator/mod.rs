@@ -15,20 +15,14 @@
 //! step(s), for use in message analysis.
 
 use std::cell::RefCell;
-use std::error::Error;
-use std::{fmt, io};
-use std::fmt::Formatter;
 use std::rc::Rc;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::input_modeling::dyn_rng;
 use crate::input_modeling::dynamic_rng::SimulationRng;
 use crate::models::{DevsModel, Model, ModelMessage, ModelRecord, Reportable};
 use crate::utils::errors::SimulationError;
 use crate::utils::set_panic_hook;
-use log::{info};
-use serde::de::{SeqAccess, Visitor};
-use serde::ser::SerializeStruct;
 use crate::simulator::time::{SDuration, STime};
 
 pub mod coupling;
@@ -210,39 +204,6 @@ impl Simulation {
         self.services.set_global_time(STime::NOW);
     }
 
-
-    /// This method constructs a list of target IDs for a given source model
-    /// ID and port.  This message target information is derived from the
-    /// connectors configuration.
-    fn get_message_target_ids(&self, source_id: &str, source_port: &str) -> Vec<String> {
-        self.connectors
-            .iter()
-            .filter_map(|connector| {
-                if connector.source_id() == source_id && connector.source_port() == source_port {
-                    Some(connector.target_id().to_string())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
-    /// This method constructs a list of target ports for a given source model
-    /// ID and port.  This message target information is derived from the
-    /// connectors configuration.
-    fn get_message_target_ports(&self, source_id: &str, source_port: &str) -> Vec<String> {
-        self.connectors
-            .iter()
-            .filter_map(|connector| {
-                if connector.source_id() == source_id && connector.source_port() == source_port {
-                    Some(connector.target_port().to_string())
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
     /// Input injection creates a message during simulation execution,
     /// without needing to create that message through the standard
     /// simulation constructs.  This enables live simulation interaction,
@@ -281,7 +242,7 @@ impl Simulation {
             let internal_messages: Vec<ModelMessage> = self.messages.iter()
                 .filter_map(|message| {
                     if message.target_id() == m.id() {
-                        Some(ModelMessage::new(message.target_port().clone(), message.content().clone()))
+                        Some(ModelMessage::new(message.target_port(), message.content()))
                     } else {
                         None
                     }
@@ -305,7 +266,6 @@ impl Simulation {
         self.models.borrow_mut().iter_mut().for_each(|model| {
             model.time_advance(until_next_event);
         });
-        info!("Sim Global Time: {}", self.services.global_time());
         self.services.advance_global_time(until_next_event);
         until_next_event
     }
@@ -316,7 +276,6 @@ impl Simulation {
             .iter_mut()
             .filter(|model| model.until_next_event() == SDuration::NOW) //Only need to work on things that are now due
             .map(|source_model| {
-                info!("Model: {}", source_model.id());
                 //Given the model, trigger any internal events.  Internal events my produce outbound messages or may error.
                 let emitted_internal_messages = source_model.events_int(&self.services)?;
 
@@ -332,11 +291,15 @@ impl Simulation {
             .collect();
 
         let new_messages = results?.into_iter().flatten().collect();
-
-        info!("Outbound messages: {:?}", new_messages);
         Ok(new_messages)
     }
 
+
+    /// The simulation step is foundational for a discrete event simulation.
+    /// This method executes a single discrete event simulation step,
+    /// including internal state transitions, external state transitions,
+    /// message orchestration, global time accounting, and step messages
+    /// output.
     pub fn step(&mut self) -> Result<Vec<Message>, SimulationError> {
         self.process_external_messages()?;
         self.advance_time();
@@ -344,88 +307,6 @@ impl Simulation {
         self.messages = new_messages.clone();
         Ok(new_messages)
     }
-
-
-/// The simulation step is foundational for a discrete event simulation.
-    /// This method executes a single discrete event simulation step,
-    /// including internal state transitions, external state transitions,
-    /// message orchestration, global time accounting, and step messages
-    /// output.
-    // pub fn step(&mut self) -> Result<Vec<Message>, SimulationError> {
-    //     let messages = self.messages.clone();
-    //     let mut next_messages: Vec<Message> = Vec::new();
-    //     // Process external events
-    //     if !messages.is_empty() {
-    //         (0..self.models.len()).try_for_each(|model_index| -> Result<(), SimulationError> {
-    //             let model_messages: Vec<ModelMessage> = messages
-    //                 .iter()
-    //                 .filter_map(|message| {
-    //                     if message.target_id() == self.models[model_index].id() {
-    //                         Some(ModelMessage {
-    //                             port_name: message.target_port().to_string(),
-    //                             content: message.content().to_string(),
-    //                         })
-    //                     } else {
-    //                         None
-    //                     }
-    //                 })
-    //                 .collect();
-    //             model_messages
-    //                 .iter()
-    //                 .try_for_each(|model_message| -> Result<(), SimulationError> {
-    //                     self.models[model_index].events_ext(model_message, &mut self.services)
-    //                 })
-    //         })?;
-    //     }
-    //     // Process internal events and gather associated messages
-    //     let until_next_event: SDuration = if self.messages.is_empty() {
-    //         self.models().iter().fold(SDuration::INFINITY, |min, model| {
-    //             SDuration::min(min, model.until_next_event())
-    //         })
-    //     } else {
-    //         SDuration::NOW
-    //     };
-    //     self.models().iter_mut().for_each(|model| {
-    //         model.time_advance(until_next_event);
-    //     });
-    //     self.services
-    //         .set_global_time(self.services.global_time() + until_next_event);
-    //     let errors: Result<Vec<()>, SimulationError> = (0..self.models.len())
-    //         .map(|model_index| -> Result<(), SimulationError> {
-    //             if self.models[model_index].until_next_event() == SDuration::NOW {
-    //                 self.models[model_index]
-    //                     .events_int(&mut self.services)?
-    //                     .iter()
-    //                     .for_each(|outgoing_message| {
-    //                         let target_ids = self.get_message_target_ids(
-    //                             self.models[model_index].id(), // Outgoing message source model ID
-    //                             &outgoing_message.port_name,   // Outgoing message source model port
-    //                         );
-    //                         let target_ports = self.get_message_target_ports(
-    //                             self.models[model_index].id(), // Outgoing message source model ID
-    //                             &outgoing_message.port_name,   // Outgoing message source model port
-    //                         );
-    //                         target_ids.iter().zip(target_ports.iter()).for_each(
-    //                             |(target_id, target_port)| {
-    //                                 next_messages.push(Message::new(
-    //                                     self.models[model_index].id().to_string(),
-    //                                     outgoing_message.port_name.clone(),
-    //                                     target_id.clone(),
-    //                                     target_port.clone(),
-    //                                     self.services.global_time(),
-    //                                     outgoing_message.content.clone(),
-    //                                 ));
-    //                             },
-    //                         );
-    //                     });
-    //             }
-    //             Ok(())
-    //         })
-    //         .collect();
-    //     errors?;
-    //     self.messages = next_messages;
-    //     Ok(self.get_messages().clone())
-    // }
 
     /// This method executes simulation `step` calls, until a global time
     /// has been exceeded.  At which point, the messages from all the

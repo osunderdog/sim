@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::f64::INFINITY;
 
 use sim::models::{Model, ModelRecord};
 use sim::output_analysis::IndependentSample;

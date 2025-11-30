@@ -1,5 +1,4 @@
 use std::iter::once;
-use std::ops::Div;
 use serde::{Deserialize, Serialize};
 
 use super::model_trait::{DevsModel, Reportable, ReportableModel, SerializableModel};

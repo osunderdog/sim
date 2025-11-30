@@ -1,4 +1,3 @@
-use std::f64::INFINITY;
 
 use serde::{Deserialize, Serialize};
 use sim::input_modeling::ContinuousRandomVariable;

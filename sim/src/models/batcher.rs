@@ -1,4 +1,3 @@
-use std::ops::SubAssign;
 use serde::{Deserialize, Serialize};
 
 use super::model_trait::{DevsModel, Reportable, ReportableModel, SerializableModel};
